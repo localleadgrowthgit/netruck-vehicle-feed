@@ -38,10 +38,10 @@ CWS_FEED_URL = "https://admin.cwsplatform.com/export/c71b77"
 # to your Merchant Center account, or every item will be disapproved.
 # Find them in Google Business Profile > (location) > Advanced settings > Store code.
 STORE_CODES = {
-    ("avon", "ma"): "REPLACE_WITH_AVON_STORE_CODE",
-    ("north smithfield", "ri"): "REPLACE_WITH_NS_STORE_CODE",
+    ("avon", "ma"): "NETRUCK_MA",
+    ("north smithfield", "ri"): "NETRUCK_RI",
 }
-DEFAULT_STORE_CODE = "REPLACE_WITH_DEFAULT_STORE_CODE"
+DEFAULT_STORE_CODE = "NETRUCK_RI"
 
 # Maximum number of additional images per vehicle (Google allows up to 10)
 MAX_ADDITIONAL_IMAGES = 10
