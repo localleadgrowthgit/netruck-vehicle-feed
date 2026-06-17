@@ -1,0 +1,38 @@
+name: Update Google Merchant Center vehicle feed
+
+on:
+  schedule:
+    # Run daily at 06:00 UTC (02:00 ET). Adjust to taste.
+    - cron: '0 6 * * *'
+  workflow_dispatch:  # lets you trigger it manually from the Actions tab
+
+jobs:
+  build-feed:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # needed so the job can commit feed.xml back to the repo
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build feed
+        run: python transform_feed.py
+
+      - name: Commit updated feed
+        run: |
+          git config user.name  "feed-bot"
+          git config user.email "feed-bot@users.noreply.github.com"
+          git add feed.xml
+          # Only commit if something actually changed
+          if ! git diff --cached --quiet; then
+            git commit -m "Update vehicle feed ($(date -u +'%Y-%m-%dT%H:%MZ'))"
+            git push
+          else
+            echo "No changes to feed.xml — skipping commit."
+          fi
