@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-CWS Platform -> Google Merchant Center Vehicle Listings transformer.
+CWS Platform -> Google Merchant Center Products feed (with vehicle attributes).
 
 Fetches the CWS XML inventory export, filters out items that are ineligible
-for Google Vehicle Ads, remaps each remaining vehicle into Google's required
-RSS 2.0 vehicle listings format, and writes feed.xml.
+for Google ads, remaps each remaining vehicle into Google's product feed format
+(RSS 2.0 with the g: namespace). Vehicle-specific attributes are also included
+for forward-compatibility if the account is approved for Vehicle Ads.
 
 Uses only the Python standard library. No pip installs needed.
 """
@@ -24,8 +25,6 @@ from xml.etree import ElementTree as ET
 SOURCE_FEED_URL = "https://admin.cwsplatform.com/export/c71b77"
 
 # Set these to the store_code values from your Google Business Profile.
-# Vehicle Ads REQUIRES this and it must match the store_code on each GBP
-# location exactly. Replace the placeholders below with the real codes.
 STORE_CODE_BY_CITY = {
     "north smithfield": "NETRUCK_RI",
     "avon": "NETRUCK_MA",
@@ -37,7 +36,11 @@ OUTPUT_PATH = Path("feed.xml")
 
 CHANNEL_TITLE = "Truck Solutions Vehicle Inventory"
 CHANNEL_LINK = "https://netrucksolutions.com"
-CHANNEL_DESCRIPTION = "New and used commercial truck inventory feed for Google Vehicle Ads."
+CHANNEL_DESCRIPTION = "New and used commercial truck inventory for Google Merchant Center."
+
+# Google's product taxonomy ID for "Vehicles & Parts > Vehicles > Motor Vehicles".
+# See: https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt
+GOOGLE_PRODUCT_CATEGORY = "Vehicles & Parts > Vehicles > Motor Vehicles"
 
 # ----------------------------- FILTERS -------------------------------------
 
@@ -91,6 +94,39 @@ def store_code_for(city: str) -> str:
     return STORE_CODE_BY_CITY.get(city.strip().lower(), DEFAULT_STORE_CODE)
 
 
+def build_rich_title(year: str, make: str, model: str, category: str,
+                     condition: str, listing: ET.Element) -> str:
+    """Build a keyword-rich title within Google's 150-char limit."""
+    parts = []
+    if condition.lower() == "new":
+        parts.append("New")
+    if year:
+        parts.append(year)
+    if make:
+        parts.append(make.title() if make.isupper() else make)
+    if model:
+        parts.append(model)
+
+    # Add category context (Box Truck, Rollback Tow Truck, etc.) if not redundant
+    cat_clean = category.strip()
+    if cat_clean and cat_clean.lower() not in (" ".join(parts).lower()):
+        # Trim "- Straight Truck" suffix duplicates
+        cat_clean = re.sub(r"\s*-\s*Straight Truck\s*$", "", cat_clean)
+        parts.append(cat_clean)
+
+    # Try to pull a key spec from short description if there's room
+    short_desc = text(listing.find("description-short"))
+    if short_desc and len(" ".join(parts)) < 100:
+        snippet = short_desc.split(".")[0].strip()
+        if snippet and snippet.lower() not in " ".join(parts).lower():
+            parts.append("-")
+            parts.append(snippet)
+
+    title = " ".join(parts)
+    title = re.sub(r"\s+", " ", title).strip()
+    return title[:150]
+
+
 def is_vehicle_listing(listing: ET.Element) -> tuple[bool, str]:
     category = text(listing.find("category")).lower()
     if any(ex in category for ex in EXCLUDED_CATEGORIES):
@@ -123,12 +159,17 @@ def build_item(listing: ET.Element) -> ET.Element:
 
     vin = text(listing.find("identification-number")).upper()
     year = text(listing.find("model-year"))
-    make = text(listing.find("manufacturer"))
+    make_raw = text(listing.find("manufacturer"))
+    # Title-case ALL-CAPS brand names for cleaner display (HINO -> Hino)
+    make = make_raw.title() if make_raw.isupper() else make_raw
     model = text(listing.find("model"))
     condition = map_condition(text(listing.find("condition")))
     price = first_float(text(listing.find("price")))
     odometer = first_int(text(listing.find("odometer"))) or 0
     odo_type = text(listing.find("odometer-type")).lower() or "miles"
+    category = text(listing.find("category"))
+    cat_type = text(listing.find("cat-type"))  # e.g. "Box Truck - Straight Truck|Box Truck - Straight Truck"
+
     description = text(listing.find("description-long")) or text(
         listing.find("description-short")
     ) or f"{year} {make} {model}"
@@ -139,9 +180,9 @@ def build_item(listing: ET.Element) -> ET.Element:
     state = text(location.find("state")) if location is not None else ""
     postal = text(location.find("postal-code")) if location is not None else ""
 
-    title = f"{year} {make} {model}".strip()
-    title = re.sub(r"\s+", " ", title)[:150]
+    title = build_rich_title(year, make, model, category, condition, listing)
 
+    # ----- CORE PRODUCT FIELDS (recognized by Merchant Center) -----
     ET.SubElement(item, f"{NS}id").text = vin
     ET.SubElement(item, "title").text = title
     ET.SubElement(item, "description").text = description[:5000]
@@ -150,6 +191,26 @@ def build_item(listing: ET.Element) -> ET.Element:
     ET.SubElement(item, f"{NS}price").text = f"{price:.2f} {CURRENCY}"
     ET.SubElement(item, f"{NS}availability").text = "in stock"
 
+    # Brand is required for most product categories
+    if make:
+        ET.SubElement(item, f"{NS}brand").text = make
+
+    # Vehicles don't have GTINs/MPNs — tell Google that's intentional
+    ET.SubElement(item, f"{NS}identifier_exists").text = "no"
+
+    # Google's taxonomy slot
+    ET.SubElement(item, f"{NS}google_product_category").text = GOOGLE_PRODUCT_CATEGORY
+
+    # Your own product hierarchy (helps with reporting/segmentation)
+    product_type = cat_type.split("|")[0] if "|" in cat_type else (cat_type or category)
+    if product_type:
+        # Convert "Box Truck - Straight Truck" to "Trucks > Box Truck"
+        product_type_clean = product_type.replace(" - ", " > ").replace("|", " > ")
+        ET.SubElement(item, f"{NS}product_type").text = f"Commercial Trucks > {product_type_clean}"
+
+    # ----- VEHICLE-SPECIFIC ATTRIBUTES (kept for future Vehicle Ads) -----
+    # These will be ignored by the standard products feed today but are
+    # valid in Google's Vehicle Ads spec, so they're future-proofed.
     ET.SubElement(item, f"{NS}vehicle_fulfillment").text = "for_sale_online"
     ET.SubElement(item, f"{NS}vin").text = vin
     ET.SubElement(item, f"{NS}year").text = year
@@ -157,18 +218,20 @@ def build_item(listing: ET.Element) -> ET.Element:
     ET.SubElement(item, f"{NS}model").text = model
     ET.SubElement(item, f"{NS}mileage").text = f"{odometer} {'miles' if 'mile' in odo_type else 'km'}"
 
+    # Store code links each listing to a Google Business Profile location
     ET.SubElement(item, f"{NS}store_code").text = store_code_for(city)
 
-    if state and postal:
-        addr = listing.find("location/address-1")
+    if state and postal and location is not None:
+        addr = location.find("address-1")
         addr1 = text(addr) if addr is not None else ""
-        full_addr = f"{addr1}, {city}, {state} {postal}"
+        full_addr = f"{addr1}, {city}, {state} {postal}".strip(", ")
         ET.SubElement(item, f"{NS}vehicle_dealer_address").text = full_addr
 
+    # ----- IMAGES -----
     photos = listing.findall("listing-photos/photo/url")
     if photos:
         ET.SubElement(item, f"{NS}image_link").text = text(photos[0])
-        for extra in photos[1:10]:
+        for extra in photos[1:11]:  # Google caps additional images at 10
             url = text(extra)
             if url:
                 ET.SubElement(item, f"{NS}additional_image_link").text = url
