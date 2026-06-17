@@ -1,286 +1,242 @@
 #!/usr/bin/env python3
 """
-CWS Platform -> Google Merchant Center Vehicle Listings Feed Transformer
-=========================================================================
-Fetches the dealer inventory XML from CWS Platform and converts it into a
-Google Merchant Center "vehicle listings" TSV feed for Vehicle Ads.
+CWS Platform -> Google Merchant Center Vehicle Listings transformer.
 
-Usage:
-    python transform_feed.py                      # fetches from CWS_FEED_URL
-    python transform_feed.py --input local.xml    # use a local XML file
-    python transform_feed.py --output feed.txt
+Fetches the CWS XML inventory export, filters out items that are ineligible
+for Google Vehicle Ads, remaps each remaining vehicle into Google's required
+RSS 2.0 vehicle listings format, and writes feed.xml.
 
-Configuration is at the top of this file (STORE_CODES, CWS_FEED_URL).
-
-Outputs:
-    vehicle_feed.txt      Tab-separated Google vehicle listings feed
-    skipped_report.csv    Listings excluded from the feed, with reasons
+Uses only the Python standard library. No pip installs needed.
 """
 
-import argparse
-import csv
-import html
-import io
+from __future__ import annotations
+
 import re
 import sys
-import xml.etree.ElementTree as ET
+import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
+from typing import Optional
+from xml.etree import ElementTree as ET
 
-# ----------------------------------------------------------------------------
-# CONFIGURATION - EDIT THESE
-# ----------------------------------------------------------------------------
+# ----------------------------- CONFIG --------------------------------------
 
-# The CWS Platform export URL for this dealer
-CWS_FEED_URL = "https://admin.cwsplatform.com/export/c71b77"
+SOURCE_FEED_URL = "https://admin.cwsplatform.com/export/c71b77"
 
-# Google Business Profile store codes, keyed by (city, state) of the listing
-# location. These MUST match the store codes in the Business Profile linked
-# to your Merchant Center account, or every item will be disapproved.
-# Find them in Google Business Profile > (location) > Advanced settings > Store code.
-STORE_CODES = {
-    ("avon", "ma"): "NETRUCK_MA",
-    ("north smithfield", "ri"): "NETRUCK_RI",
+# Set these to the store_code values from your Google Business Profile.
+# Vehicle Ads REQUIRES this and it must match the store_code on each GBP
+# location exactly. Replace the placeholders below with the real codes.
+STORE_CODE_BY_CITY = {
+    "north smithfield": "NETRUCK_RI",
+    "avon": "NETRUCK_MA",
 }
 DEFAULT_STORE_CODE = "NETRUCK_RI"
 
-# Maximum number of additional images per vehicle (Google allows up to 10)
-MAX_ADDITIONAL_IMAGES = 10
+CURRENCY = "USD"
+OUTPUT_PATH = Path("feed.xml")
 
-# ----------------------------------------------------------------------------
+CHANNEL_TITLE = "Truck Solutions Vehicle Inventory"
+CHANNEL_LINK = "https://netrucksolutions.com"
+CHANNEL_DESCRIPTION = "New and used commercial truck inventory feed for Google Vehicle Ads."
 
-VIN_RE = re.compile(r"^[A-HJ-NPR-Z0-9]{17}$")  # 17 chars, no I, O, Q
+# ----------------------------- FILTERS -------------------------------------
 
-COLOR_WORDS = [
-    "white", "black", "silver", "gray", "grey", "red", "blue", "green",
-    "yellow", "orange", "brown", "tan", "beige", "gold", "maroon", "burgundy",
-]
+EXCLUDED_CATEGORIES = {
+    "dry van body only",
+    "reefer/refrigerated body",
+    "truck bodies only",
+}
 
-FEED_COLUMNS = [
-    "id",
-    "store_code",
-    "vin",
-    "title",
-    "description",
-    "brand",
-    "model",
-    "year",
-    "mileage",
-    "condition",
-    "color",
-    "price",
-    "link",
-    "image_link",
-    "additional_image_link",
-    "vehicle_option",
-]
+VIN_RE = re.compile(r"^[A-HJ-NPR-Z0-9]{17}$")
 
 
-def text(node, tag, default=""):
-    """Get stripped text of a child tag, handling CDATA whitespace."""
-    el = node.find(tag)
-    if el is None or el.text is None:
-        return default
-    return html.unescape(el.text).strip()
+# ----------------------------- HELPERS -------------------------------------
 
 
-def clean_ws(s):
-    return re.sub(r"\s+", " ", s or "").strip()
+def text(elem: Optional[ET.Element]) -> str:
+    if elem is None or elem.text is None:
+        return ""
+    return elem.text.strip()
 
 
-def parse_price(raw):
-    """Parse price strings like '122890.', '0.00', '115000.00'. Returns float or None."""
-    raw = (raw or "").replace(",", "").replace("$", "").strip()
-    if not raw:
+def first_int(s: str) -> Optional[int]:
+    if not s:
+        return None
+    digits = re.sub(r"[^\d]", "", s.split(".")[0])
+    return int(digits) if digits else None
+
+
+def first_float(s: str) -> Optional[float]:
+    if not s:
+        return None
+    cleaned = re.sub(r"[^\d.]", "", s)
+    if not cleaned or cleaned == ".":
         return None
     try:
-        return float(raw)
+        return float(cleaned)
     except ValueError:
-        m = re.search(r"\d+(?:\.\d+)?", raw)
-        return float(m.group()) if m else None
+        return None
 
 
-def guess_color(description):
-    """Best-effort color extraction from the description text."""
-    d = (description or "").lower()
-    # 'Color: White' style first
-    m = re.search(r"colou?r:\s*([a-z]+)", d)
-    if m and m.group(1) in COLOR_WORDS:
-        return m.group(1).capitalize()
-    for c in COLOR_WORDS:
-        if re.search(rf"\b{c}\b", d):
-            return "Gray" if c == "grey" else c.capitalize()
-    return ""
+def map_condition(raw: str) -> str:
+    r = raw.strip().lower()
+    if r == "new":
+        return "new"
+    if r == "used":
+        return "used"
+    return "used"
 
 
-def build_options(listing):
-    """Collect non-empty specifications as vehicle_option values."""
-    opts = []
-    specs = listing.find("specifications")
-    if specs is None:
-        return opts
-    for spec in specs.findall("specification"):
-        name = clean_ws(text(spec, "specification-name"))
-        value = clean_ws(text(spec, "specification-value"))
-        if not name or not value or name.isdigit():
+def store_code_for(city: str) -> str:
+    return STORE_CODE_BY_CITY.get(city.strip().lower(), DEFAULT_STORE_CODE)
+
+
+def is_vehicle_listing(listing: ET.Element) -> tuple[bool, str]:
+    category = text(listing.find("category")).lower()
+    if any(ex in category for ex in EXCLUDED_CATEGORIES):
+        return False, f"excluded category: {category}"
+
+    vin = text(listing.find("identification-number")).upper()
+    if not vin:
+        return False, "missing VIN"
+    if not VIN_RE.match(vin):
+        return False, f"invalid VIN format: {vin!r}"
+
+    price_val = first_float(text(listing.find("price")))
+    if price_val is None or price_val <= 0:
+        return False, "no price (Request a Quote)"
+
+    odo_type = text(listing.find("odometer-type")).lower()
+    if odo_type and odo_type not in ("miles", "kilometers", "km"):
+        return False, f"odometer in {odo_type}, not miles"
+
+    year = first_int(text(listing.find("model-year")))
+    if not year or year < 1981 or year > datetime.now().year + 2:
+        return False, f"invalid year: {year}"
+
+    return True, ""
+
+
+def build_item(listing: ET.Element) -> ET.Element:
+    NS = "{http://base.google.com/ns/1.0}"
+    item = ET.Element("item")
+
+    vin = text(listing.find("identification-number")).upper()
+    year = text(listing.find("model-year"))
+    make = text(listing.find("manufacturer"))
+    model = text(listing.find("model"))
+    condition = map_condition(text(listing.find("condition")))
+    price = first_float(text(listing.find("price")))
+    odometer = first_int(text(listing.find("odometer"))) or 0
+    odo_type = text(listing.find("odometer-type")).lower() or "miles"
+    description = text(listing.find("description-long")) or text(
+        listing.find("description-short")
+    ) or f"{year} {make} {model}"
+    listing_url = text(listing.find("listing-url"))
+
+    location = listing.find("location")
+    city = text(location.find("city")) if location is not None else ""
+    state = text(location.find("state")) if location is not None else ""
+    postal = text(location.find("postal-code")) if location is not None else ""
+
+    title = f"{year} {make} {model}".strip()
+    title = re.sub(r"\s+", " ", title)[:150]
+
+    ET.SubElement(item, f"{NS}id").text = vin
+    ET.SubElement(item, "title").text = title
+    ET.SubElement(item, "description").text = description[:5000]
+    ET.SubElement(item, "link").text = listing_url
+    ET.SubElement(item, f"{NS}condition").text = condition
+    ET.SubElement(item, f"{NS}price").text = f"{price:.2f} {CURRENCY}"
+    ET.SubElement(item, f"{NS}availability").text = "in stock"
+
+    ET.SubElement(item, f"{NS}vehicle_fulfillment").text = "for_sale_online"
+    ET.SubElement(item, f"{NS}vin").text = vin
+    ET.SubElement(item, f"{NS}year").text = year
+    ET.SubElement(item, f"{NS}make").text = make
+    ET.SubElement(item, f"{NS}model").text = model
+    ET.SubElement(item, f"{NS}mileage").text = f"{odometer} {'miles' if 'mile' in odo_type else 'km'}"
+
+    ET.SubElement(item, f"{NS}store_code").text = store_code_for(city)
+
+    if state and postal:
+        addr = listing.find("location/address-1")
+        addr1 = text(addr) if addr is not None else ""
+        full_addr = f"{addr1}, {city}, {state} {postal}"
+        ET.SubElement(item, f"{NS}vehicle_dealer_address").text = full_addr
+
+    photos = listing.findall("listing-photos/photo/url")
+    if photos:
+        ET.SubElement(item, f"{NS}image_link").text = text(photos[0])
+        for extra in photos[1:10]:
+            url = text(extra)
+            if url:
+                ET.SubElement(item, f"{NS}additional_image_link").text = url
+
+    return item
+
+
+def fetch_source(url: str) -> bytes:
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "feed-transformer/1.0 (+netrucksolutions.com)"},
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return resp.read()
+
+
+def build_feed(source_xml: bytes) -> tuple[ET.ElementTree, dict]:
+    root = ET.fromstring(source_xml)
+    listings = root.findall(".//listing")
+
+    ET.register_namespace("g", "http://base.google.com/ns/1.0")
+    rss = ET.Element("rss", {"version": "2.0"})
+    channel = ET.SubElement(rss, "channel")
+    ET.SubElement(channel, "title").text = CHANNEL_TITLE
+    ET.SubElement(channel, "link").text = CHANNEL_LINK
+    ET.SubElement(channel, "description").text = CHANNEL_DESCRIPTION
+    ET.SubElement(channel, "lastBuildDate").text = datetime.now(timezone.utc).strftime(
+        "%a, %d %b %Y %H:%M:%S +0000"
+    )
+
+    stats = {"total": len(listings), "included": 0, "excluded": 0, "reasons": {}}
+
+    for listing in listings:
+        ok, reason = is_vehicle_listing(listing)
+        if not ok:
+            stats["excluded"] += 1
+            stats["reasons"][reason] = stats["reasons"].get(reason, 0) + 1
             continue
-        opts.append(f"{name}: {value}")
-    return opts
+        channel.append(build_item(listing))
+        stats["included"] += 1
+
+    return ET.ElementTree(rss), stats
 
 
-def transform(xml_bytes):
-    root = ET.fromstring(xml_bytes)
-    rows, skipped = [], []
-    seen_vins = set()
+def main() -> int:
+    print(f"Fetching {SOURCE_FEED_URL} ...")
+    try:
+        source = fetch_source(SOURCE_FEED_URL)
+    except Exception as e:
+        print(f"ERROR: could not fetch source feed: {e}", file=sys.stderr)
+        return 1
 
-    for listing in root.iter("listing"):
-        stock = text(listing, "stock-number")
-        make = clean_ws(text(listing, "manufacturer"))
-        model = clean_ws(text(listing, "model"))
-        year = text(listing, "model-year")
-        ident = text(listing, "identification-number").upper().replace(" ", "")
-        label = f"{year} {make} {model}".strip()
-        url = text(listing, "listing-url")
-        condition_raw = text(listing, "condition").lower()
-        price_val = parse_price(text(listing, "price"))
-        desc = clean_ws(text(listing, "description-long")) or clean_ws(
-            text(listing, "description-short")
-        )
+    print(f"Fetched {len(source):,} bytes. Transforming ...")
+    tree, stats = build_feed(source)
 
-        def skip(reason):
-            skipped.append({
-                "stock_number": stock, "vehicle": label, "vin": ident,
-                "price": price_val if price_val is not None else "",
-                "reason": reason, "url": url,
-            })
+    ET.indent(tree, space="  ")
+    tree.write(OUTPUT_PATH, encoding="utf-8", xml_declaration=True)
 
-        # --- Validation / exclusions -------------------------------------
-        if not VIN_RE.match(ident):
-            skip("Missing or invalid VIN (17 chars required; bodies-only items can't be advertised)")
-            continue
-        if ident in seen_vins:
-            skip("Duplicate VIN - already included in feed")
-            continue
-        if price_val is None or price_val <= 0:
-            skip("No price / 'Request a Quote' - Google requires a real price > 0")
-            continue
-        if condition_raw not in ("new", "used"):
-            skip(f"Unrecognized condition '{condition_raw}'")
-            continue
-        if not year.isdigit():
-            skip("Missing model year")
-            continue
-        if not make or not model:
-            skip("Missing make or model")
-            continue
-
-        photos = []
-        photo_parent = listing.find("listing-photos")
-        if photo_parent is not None:
-            for p in photo_parent.findall("photo"):
-                u = text(p, "url")
-                if u:
-                    photos.append(u)
-        if not photos:
-            skip("No photos - image_link is required")
-            continue
-
-        # --- Field mapping -------------------------------------------------
-        odo_raw = text(listing, "odometer")
-        odo_type = text(listing, "odometer-type").lower()
-        try:
-            odo_val = int(float(odo_raw)) if odo_raw else 0
-        except ValueError:
-            odo_val = 0
-        if odo_type != "miles":
-            # Hours / missing units: only safe to default for new vehicles
-            if condition_raw == "new":
-                odo_val = odo_val if odo_val < 10000 else 0
-            else:
-                skip(f"Odometer in '{odo_type or 'unknown'}' units on a used vehicle - mileage required")
-                continue
-        mileage = f"{odo_val} miles"
-
-        loc = listing.find("location")
-        city = clean_ws(text(loc, "city")).lower() if loc is not None else ""
-        state = clean_ws(text(loc, "state")).lower() if loc is not None else ""
-        store_code = STORE_CODES.get((city, state), DEFAULT_STORE_CODE)
-
-        brand_clean = make.title() if make.isupper() else make
-        title = f"{year} {brand_clean} {model}".strip()
-
-        seen_vins.add(ident)
-        rows.append({
-            "id": ident,
-            "store_code": store_code,
-            "vin": ident,
-            "title": title[:150],
-            "description": desc[:5000],
-            "brand": brand_clean,
-            "model": model,
-            "year": year,
-            "mileage": mileage,
-            "condition": condition_raw,
-            "color": guess_color(desc),
-            "price": f"{price_val:.2f} USD",
-            "link": url,
-            "image_link": photos[0],
-            "additional_image_link": ",".join(photos[1:1 + MAX_ADDITIONAL_IMAGES]),
-            "vehicle_option": ",".join(build_options(listing))[:1000],
-        })
-
-    return rows, skipped
-
-
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--input", help="Local XML file (otherwise fetches CWS_FEED_URL)")
-    ap.add_argument("--output", default="vehicle_feed.txt")
-    ap.add_argument("--skipped", default="skipped_report.csv")
-    args = ap.parse_args()
-
-    if args.input:
-        with open(args.input, "rb") as f:
-            xml_bytes = f.read()
-    else:
-        import requests
-        print(f"Fetching {CWS_FEED_URL} ...")
-        resp = requests.get(CWS_FEED_URL, timeout=60,
-                            headers={"User-Agent": "DealerFeedBot/1.0"})
-        resp.raise_for_status()
-        xml_bytes = resp.content
-
-    # CWS sometimes embeds <script> junk injected by browser extensions when
-    # saved from a browser; strip empty script tags defensively.
-    xml_text = xml_bytes.decode("utf-8", errors="replace")
-    xml_text = re.sub(r"<script\b[^>]*/>|<script\b[^>]*>.*?</script>", "", xml_text, flags=re.S)
-    rows, skipped = transform(xml_text.encode("utf-8"))
-
-    with open(args.output, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=FEED_COLUMNS, delimiter="\t",
-                           quoting=csv.QUOTE_MINIMAL)
-        w.writeheader()
-        w.writerows(rows)
-
-    with open(args.skipped, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=["stock_number", "vehicle", "vin",
-                                          "price", "reason", "url"])
-        w.writeheader()
-        w.writerows(skipped)
-
-    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    print(f"[{stamp}] Feed written: {args.output} ({len(rows)} vehicles included)")
-    print(f"Skipped: {len(skipped)} listings -> see {args.skipped}")
-    missing_color = sum(1 for r in rows if not r["color"])
-    if missing_color:
-        print(f"WARNING: {missing_color} included vehicles have no color "
-              f"(Google requires 'color' for vehicle ads; add colors in CWS).")
-    if any(r["store_code"].startswith("REPLACE_WITH") for r in rows):
-        print("WARNING: store codes are still placeholders - edit STORE_CODES "
-              "at the top of this script before uploading to Merchant Center.")
-    if not rows:
-        print("ERROR: no eligible vehicles - feed is empty.")
-        sys.exit(1)
+    print(f"Wrote {OUTPUT_PATH} ({OUTPUT_PATH.stat().st_size:,} bytes)")
+    print(f"  Total listings:    {stats['total']}")
+    print(f"  Included in feed:  {stats['included']}")
+    print(f"  Excluded:          {stats['excluded']}")
+    if stats["reasons"]:
+        print("  Exclusion breakdown:")
+        for reason, n in sorted(stats["reasons"].items(), key=lambda x: -x[1]):
+            print(f"    {n:>4}  {reason}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
