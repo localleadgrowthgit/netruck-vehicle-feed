@@ -38,12 +38,7 @@ CHANNEL_TITLE = "Truck Solutions Vehicle Inventory"
 CHANNEL_LINK = "https://netrucksolutions.com"
 CHANNEL_DESCRIPTION = "New and used commercial truck inventory for Google Merchant Center."
 
-# Google's product taxonomy for "Vehicles & Parts > Vehicles > Motor Vehicles > Cars, Trucks & Vans"
 GOOGLE_PRODUCT_CATEGORY = "Vehicles & Parts > Vehicles > Motor Vehicles > Cars, Trucks & Vans"
-
-# Link template controls click destination in Google Ads.
-# {lpurl} is replaced at click-time with each row's <link> value.
-LINK_TEMPLATE = "{lpurl}"
 
 # ----------------------------- FILTERS -------------------------------------
 
@@ -55,8 +50,6 @@ EXCLUDED_CATEGORIES = {
 
 VIN_RE = re.compile(r"^[A-HJ-NPR-Z0-9]{17}$")
 
-# Color words we'll try to extract from descriptions. Order matters: longer/more
-# specific terms first so "off white" beats "white".
 COLOR_PATTERNS = [
     ("Off-White", r"\boff[\s-]?white\b"),
     ("Pearl White", r"\bpearl\s+white\b"),
@@ -78,8 +71,6 @@ COLOR_PATTERNS = [
     ("Burgundy", r"\bburgundy\b"),
 ]
 
-# Words that often appear near color words but aren't the vehicle's color.
-# We'll skip color matches that immediately follow these.
 COLOR_NEGATIVE_CONTEXT = re.compile(
     r"\b(interior|seat|seats|wheels?|aluminum|steel|trim|stripe|tape|liner|"
     r"floor|tank|fuel|hose|cable|wire|label|tag|sticker)\s+\w*\s*$",
@@ -128,18 +119,28 @@ def store_code_for(city: str) -> str:
     return STORE_CODE_BY_CITY.get(city.strip().lower(), DEFAULT_STORE_CODE)
 
 
+def build_link_template(listing_url: str) -> str:
+    """
+    Build the link_template URL per Google's spec.
+
+    Google requires the {store_code} ValueTrack parameter. We use each
+    vehicle's specific listing URL as the base so deep-linking is preserved,
+    appending ?store={store_code} (or &store={store_code} if the URL already
+    has a query string).
+    """
+    if not listing_url:
+        return ""
+    separator = "&" if "?" in listing_url else "?"
+    return f"{listing_url}{separator}store={{store_code}}"
+
+
 def extract_color(description: str, short_desc: str = "") -> str:
-    """
-    Try to extract a color from the description text. Falls back to 'Unspecified'.
-    Avoids false positives like 'White cable' or 'Black interior'.
-    """
     text_to_search = f"{short_desc} {description}".lower()
     if not text_to_search.strip():
         return "Unspecified"
 
     for color_label, pattern in COLOR_PATTERNS:
         for match in re.finditer(pattern, text_to_search, re.IGNORECASE):
-            # Look at the 30 chars before the match for negative context
             preceding = text_to_search[max(0, match.start() - 30):match.start()]
             if COLOR_NEGATIVE_CONTEXT.search(preceding):
                 continue
@@ -149,7 +150,6 @@ def extract_color(description: str, short_desc: str = "") -> str:
 
 def build_rich_title(year: str, make: str, model: str, category: str,
                      condition: str, listing: ET.Element) -> str:
-    """Build a keyword-rich title within Google's 150-char limit."""
     parts = []
     if condition.lower() == "new":
         parts.append("New")
@@ -231,31 +231,26 @@ def build_item(listing: ET.Element) -> ET.Element:
 
     title = build_rich_title(year, make, model, category, condition, listing)
     color = extract_color(description_long, description_short)
+    link_template = build_link_template(listing_url)
 
     # ----- CORE PRODUCT FIELDS -----
     ET.SubElement(item, f"{NS}id").text = vin
     ET.SubElement(item, "title").text = title
     ET.SubElement(item, "description").text = description[:5000]
     ET.SubElement(item, "link").text = listing_url
-    ET.SubElement(item, f"{NS}link_template").text = LINK_TEMPLATE
+    if link_template:
+        ET.SubElement(item, f"{NS}link_template").text = link_template
     ET.SubElement(item, f"{NS}condition").text = condition
     ET.SubElement(item, f"{NS}price").text = f"{price:.2f} {CURRENCY}"
     ET.SubElement(item, f"{NS}availability").text = "in stock"
 
-    # Brand — required for most product categories. Use the manufacturer.
     if make:
         ET.SubElement(item, f"{NS}brand").text = make
 
-    # Vehicles don't have GTINs/MPNs
     ET.SubElement(item, f"{NS}identifier_exists").text = "no"
-
-    # Google taxonomy
     ET.SubElement(item, f"{NS}google_product_category").text = GOOGLE_PRODUCT_CATEGORY
-
-    # Color — required by Google for vehicles
     ET.SubElement(item, f"{NS}color").text = color
 
-    # Own product hierarchy for reporting
     product_type = cat_type.split("|")[0] if "|" in cat_type else (cat_type or category)
     if product_type:
         product_type_clean = product_type.replace(" - ", " > ").replace("|", " > ")
@@ -323,7 +318,6 @@ def build_feed(source_xml: bytes) -> tuple[ET.ElementTree, dict]:
         item = build_item(listing)
         channel.append(item)
         stats["included"] += 1
-        # Track color extraction results for visibility in logs
         color_el = item.find("{http://base.google.com/ns/1.0}color")
         if color_el is not None:
             c = color_el.text
