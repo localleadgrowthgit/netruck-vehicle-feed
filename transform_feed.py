@@ -257,7 +257,12 @@ def build_item(listing: ET.Element) -> ET.Element:
         ET.SubElement(item, f"{NS}product_type").text = f"Commercial Trucks > {product_type_clean}"
 
     # ----- VEHICLE-SPECIFIC ATTRIBUTES (future-proofed for Vehicle Ads) -----
-    ET.SubElement(item, f"{NS}vehicle_fulfillment").text = "for_sale_online"
+    # Note: g:vehicle_fulfillment intentionally omitted. It's a structured
+    # sub-attribute (colon-delimited) per Google's spec, only meaningful when
+    # the account is enrolled in Vehicle Ads. As a plain string in a products
+    # feed it triggers an "invalid format for sub-attributes" error and
+    # limits visibility, so we drop it. If/when Vehicle Ads is enabled, we'd
+    # add it back with the correct structured value per the current spec.
     ET.SubElement(item, f"{NS}vin").text = vin
     ET.SubElement(item, f"{NS}year").text = year
     ET.SubElement(item, f"{NS}make").text = make
