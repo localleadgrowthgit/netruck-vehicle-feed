@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CWS Platform -> Google Merchant Center Products feed (with vehicle attributes).
+CWS Platform -> Google Merchant Center Products feed.
 
 Fetches the CWS XML inventory export, filters out items that are ineligible
 for Google ads, remaps each remaining vehicle into Google's product feed format
@@ -38,9 +38,12 @@ CHANNEL_TITLE = "Truck Solutions Vehicle Inventory"
 CHANNEL_LINK = "https://netrucksolutions.com"
 CHANNEL_DESCRIPTION = "New and used commercial truck inventory for Google Merchant Center."
 
-# Google's product taxonomy ID for "Vehicles & Parts > Vehicles > Motor Vehicles".
-# See: https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt
-GOOGLE_PRODUCT_CATEGORY = "Vehicles & Parts > Vehicles > Motor Vehicles"
+# Google's product taxonomy for "Vehicles & Parts > Vehicles > Motor Vehicles > Cars, Trucks & Vans"
+GOOGLE_PRODUCT_CATEGORY = "Vehicles & Parts > Vehicles > Motor Vehicles > Cars, Trucks & Vans"
+
+# Link template controls click destination in Google Ads.
+# {lpurl} is replaced at click-time with each row's <link> value.
+LINK_TEMPLATE = "{lpurl}"
 
 # ----------------------------- FILTERS -------------------------------------
 
@@ -51,6 +54,37 @@ EXCLUDED_CATEGORIES = {
 }
 
 VIN_RE = re.compile(r"^[A-HJ-NPR-Z0-9]{17}$")
+
+# Color words we'll try to extract from descriptions. Order matters: longer/more
+# specific terms first so "off white" beats "white".
+COLOR_PATTERNS = [
+    ("Off-White", r"\boff[\s-]?white\b"),
+    ("Pearl White", r"\bpearl\s+white\b"),
+    ("Snow White", r"\bsnow\s+white\b"),
+    ("White", r"\bwhite\b"),
+    ("Black", r"\bblack\b"),
+    ("Silver", r"\bsilver\b"),
+    ("Gray", r"\b(gr[ae]y)\b"),
+    ("Red", r"\bred\b"),
+    ("Blue", r"\bblue\b"),
+    ("Green", r"\bgreen\b"),
+    ("Yellow", r"\byellow\b"),
+    ("Orange", r"\borange\b"),
+    ("Brown", r"\bbrown\b"),
+    ("Tan", r"\btan\b"),
+    ("Beige", r"\bbeige\b"),
+    ("Gold", r"\bgold\b"),
+    ("Maroon", r"\bmaroon\b"),
+    ("Burgundy", r"\bburgundy\b"),
+]
+
+# Words that often appear near color words but aren't the vehicle's color.
+# We'll skip color matches that immediately follow these.
+COLOR_NEGATIVE_CONTEXT = re.compile(
+    r"\b(interior|seat|seats|wheels?|aluminum|steel|trim|stripe|tape|liner|"
+    r"floor|tank|fuel|hose|cable|wire|label|tag|sticker)\s+\w*\s*$",
+    re.IGNORECASE,
+)
 
 
 # ----------------------------- HELPERS -------------------------------------
@@ -94,6 +128,25 @@ def store_code_for(city: str) -> str:
     return STORE_CODE_BY_CITY.get(city.strip().lower(), DEFAULT_STORE_CODE)
 
 
+def extract_color(description: str, short_desc: str = "") -> str:
+    """
+    Try to extract a color from the description text. Falls back to 'Unspecified'.
+    Avoids false positives like 'White cable' or 'Black interior'.
+    """
+    text_to_search = f"{short_desc} {description}".lower()
+    if not text_to_search.strip():
+        return "Unspecified"
+
+    for color_label, pattern in COLOR_PATTERNS:
+        for match in re.finditer(pattern, text_to_search, re.IGNORECASE):
+            # Look at the 30 chars before the match for negative context
+            preceding = text_to_search[max(0, match.start() - 30):match.start()]
+            if COLOR_NEGATIVE_CONTEXT.search(preceding):
+                continue
+            return color_label
+    return "Unspecified"
+
+
 def build_rich_title(year: str, make: str, model: str, category: str,
                      condition: str, listing: ET.Element) -> str:
     """Build a keyword-rich title within Google's 150-char limit."""
@@ -107,14 +160,11 @@ def build_rich_title(year: str, make: str, model: str, category: str,
     if model:
         parts.append(model)
 
-    # Add category context (Box Truck, Rollback Tow Truck, etc.) if not redundant
     cat_clean = category.strip()
     if cat_clean and cat_clean.lower() not in (" ".join(parts).lower()):
-        # Trim "- Straight Truck" suffix duplicates
         cat_clean = re.sub(r"\s*-\s*Straight Truck\s*$", "", cat_clean)
         parts.append(cat_clean)
 
-    # Try to pull a key spec from short description if there's room
     short_desc = text(listing.find("description-short"))
     if short_desc and len(" ".join(parts)) < 100:
         snippet = short_desc.split(".")[0].strip()
@@ -160,7 +210,6 @@ def build_item(listing: ET.Element) -> ET.Element:
     vin = text(listing.find("identification-number")).upper()
     year = text(listing.find("model-year"))
     make_raw = text(listing.find("manufacturer"))
-    # Title-case ALL-CAPS brand names for cleaner display (HINO -> Hino)
     make = make_raw.title() if make_raw.isupper() else make_raw
     model = text(listing.find("model"))
     condition = map_condition(text(listing.find("condition")))
@@ -168,11 +217,11 @@ def build_item(listing: ET.Element) -> ET.Element:
     odometer = first_int(text(listing.find("odometer"))) or 0
     odo_type = text(listing.find("odometer-type")).lower() or "miles"
     category = text(listing.find("category"))
-    cat_type = text(listing.find("cat-type"))  # e.g. "Box Truck - Straight Truck|Box Truck - Straight Truck"
+    cat_type = text(listing.find("cat-type"))
 
-    description = text(listing.find("description-long")) or text(
-        listing.find("description-short")
-    ) or f"{year} {make} {model}"
+    description_long = text(listing.find("description-long"))
+    description_short = text(listing.find("description-short"))
+    description = description_long or description_short or f"{year} {make} {model}"
     listing_url = text(listing.find("listing-url"))
 
     location = listing.find("location")
@@ -181,44 +230,44 @@ def build_item(listing: ET.Element) -> ET.Element:
     postal = text(location.find("postal-code")) if location is not None else ""
 
     title = build_rich_title(year, make, model, category, condition, listing)
+    color = extract_color(description_long, description_short)
 
-    # ----- CORE PRODUCT FIELDS (recognized by Merchant Center) -----
+    # ----- CORE PRODUCT FIELDS -----
     ET.SubElement(item, f"{NS}id").text = vin
     ET.SubElement(item, "title").text = title
     ET.SubElement(item, "description").text = description[:5000]
     ET.SubElement(item, "link").text = listing_url
+    ET.SubElement(item, f"{NS}link_template").text = LINK_TEMPLATE
     ET.SubElement(item, f"{NS}condition").text = condition
     ET.SubElement(item, f"{NS}price").text = f"{price:.2f} {CURRENCY}"
     ET.SubElement(item, f"{NS}availability").text = "in stock"
 
-    # Brand is required for most product categories
+    # Brand — required for most product categories. Use the manufacturer.
     if make:
         ET.SubElement(item, f"{NS}brand").text = make
 
-    # Vehicles don't have GTINs/MPNs — tell Google that's intentional
+    # Vehicles don't have GTINs/MPNs
     ET.SubElement(item, f"{NS}identifier_exists").text = "no"
 
-    # Google's taxonomy slot
+    # Google taxonomy
     ET.SubElement(item, f"{NS}google_product_category").text = GOOGLE_PRODUCT_CATEGORY
 
-    # Your own product hierarchy (helps with reporting/segmentation)
+    # Color — required by Google for vehicles
+    ET.SubElement(item, f"{NS}color").text = color
+
+    # Own product hierarchy for reporting
     product_type = cat_type.split("|")[0] if "|" in cat_type else (cat_type or category)
     if product_type:
-        # Convert "Box Truck - Straight Truck" to "Trucks > Box Truck"
         product_type_clean = product_type.replace(" - ", " > ").replace("|", " > ")
         ET.SubElement(item, f"{NS}product_type").text = f"Commercial Trucks > {product_type_clean}"
 
-    # ----- VEHICLE-SPECIFIC ATTRIBUTES (kept for future Vehicle Ads) -----
-    # These will be ignored by the standard products feed today but are
-    # valid in Google's Vehicle Ads spec, so they're future-proofed.
+    # ----- VEHICLE-SPECIFIC ATTRIBUTES (future-proofed for Vehicle Ads) -----
     ET.SubElement(item, f"{NS}vehicle_fulfillment").text = "for_sale_online"
     ET.SubElement(item, f"{NS}vin").text = vin
     ET.SubElement(item, f"{NS}year").text = year
     ET.SubElement(item, f"{NS}make").text = make
     ET.SubElement(item, f"{NS}model").text = model
     ET.SubElement(item, f"{NS}mileage").text = f"{odometer} {'miles' if 'mile' in odo_type else 'km'}"
-
-    # Store code links each listing to a Google Business Profile location
     ET.SubElement(item, f"{NS}store_code").text = store_code_for(city)
 
     if state and postal and location is not None:
@@ -231,7 +280,7 @@ def build_item(listing: ET.Element) -> ET.Element:
     photos = listing.findall("listing-photos/photo/url")
     if photos:
         ET.SubElement(item, f"{NS}image_link").text = text(photos[0])
-        for extra in photos[1:11]:  # Google caps additional images at 10
+        for extra in photos[1:11]:
             url = text(extra)
             if url:
                 ET.SubElement(item, f"{NS}additional_image_link").text = url
@@ -262,7 +311,8 @@ def build_feed(source_xml: bytes) -> tuple[ET.ElementTree, dict]:
         "%a, %d %b %Y %H:%M:%S +0000"
     )
 
-    stats = {"total": len(listings), "included": 0, "excluded": 0, "reasons": {}}
+    stats = {"total": len(listings), "included": 0, "excluded": 0,
+             "reasons": {}, "colors": {}}
 
     for listing in listings:
         ok, reason = is_vehicle_listing(listing)
@@ -270,8 +320,14 @@ def build_feed(source_xml: bytes) -> tuple[ET.ElementTree, dict]:
             stats["excluded"] += 1
             stats["reasons"][reason] = stats["reasons"].get(reason, 0) + 1
             continue
-        channel.append(build_item(listing))
+        item = build_item(listing)
+        channel.append(item)
         stats["included"] += 1
+        # Track color extraction results for visibility in logs
+        color_el = item.find("{http://base.google.com/ns/1.0}color")
+        if color_el is not None:
+            c = color_el.text
+            stats["colors"][c] = stats["colors"].get(c, 0) + 1
 
     return ET.ElementTree(rss), stats
 
@@ -298,6 +354,10 @@ def main() -> int:
         print("  Exclusion breakdown:")
         for reason, n in sorted(stats["reasons"].items(), key=lambda x: -x[1]):
             print(f"    {n:>4}  {reason}")
+    if stats["colors"]:
+        print("  Color extraction:")
+        for color, n in sorted(stats["colors"].items(), key=lambda x: -x[1]):
+            print(f"    {n:>4}  {color}")
     return 0
 
 
