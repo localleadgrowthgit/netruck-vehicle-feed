@@ -34,6 +34,11 @@ DEFAULT_STORE_CODE = "NETRUCK_RI"
 CURRENCY = "USD"
 OUTPUT_PATH = Path("feed.xml")
 
+# Restrict the feed to a single location to avoid the multistate offers policy
+# in Merchant Center. Set to None to disable filtering and include all
+# locations. Set to a city name (lowercase) to include only that location.
+RESTRICT_TO_CITY = "north smithfield"
+
 CHANNEL_TITLE = "Truck Solutions Vehicle Inventory"
 CHANNEL_LINK = "https://netrucksolutions.com"
 CHANNEL_DESCRIPTION = "New and used commercial truck inventory for Google Merchant Center."
@@ -182,6 +187,14 @@ def is_vehicle_listing(listing: ET.Element) -> tuple[bool, str]:
     if any(ex in category for ex in EXCLUDED_CATEGORIES):
         return False, f"excluded category: {category}"
 
+    # Restrict to a single state/city to avoid the Merchant Center
+    # "multistate offers" policy violation.
+    if RESTRICT_TO_CITY:
+        location = listing.find("location")
+        city = text(location.find("city")).lower() if location is not None else ""
+        if city != RESTRICT_TO_CITY.lower():
+            return False, f"location filtered (not {RESTRICT_TO_CITY})"
+
     vin = text(listing.find("identification-number")).upper()
     if not vin:
         return False, "missing VIN"
@@ -269,6 +282,13 @@ def build_item(listing: ET.Element) -> ET.Element:
     ET.SubElement(item, f"{NS}model").text = model
     ET.SubElement(item, f"{NS}mileage").text = f"{odometer} {'miles' if 'mile' in odo_type else 'km'}"
     ET.SubElement(item, f"{NS}store_code").text = store_code_for(city)
+
+    # MSRP — only emit when the CWS retail-price field actually has a value.
+    # The dealership leaves this blank on most listings today; the attribute
+    # will appear automatically once retail prices are filled in upstream.
+    retail_price = first_float(text(listing.find("retail-price")))
+    if retail_price is not None and retail_price > 0:
+        ET.SubElement(item, f"{NS}vehicle_msrp").text = f"{retail_price:.2f} {CURRENCY}"
 
     if state and postal and location is not None:
         addr = location.find("address-1")
