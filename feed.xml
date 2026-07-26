@@ -4,7 +4,7 @@
     <title>Truck Solutions Vehicle Inventory</title>
     <link>https://netrucksolutions.com</link>
     <description>New and used commercial truck inventory for Google Merchant Center.</description>
-    <lastBuildDate>Sat, 25 Jul 2026 07:51:16 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 26 Jul 2026 08:06:40 +0000</lastBuildDate>
     <item>
       <g:id>5PVNJ7EY3V5T50257</g:id>
       <title>New 2027 Hino L6 Cab Chassis</title>
@@ -34,7 +34,7 @@
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a51005cb712253992135b9e.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a51005db712253992135b9f.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a51005db712253992135ba0.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a63667618fad4304e4b30c2.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63667618fad4304e4b30c2.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57c8c9c0d8316bb86e6088.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a51005db712253992135ba1.jpg</g:additional_image_link>
     </item>
@@ -60,16 +60,49 @@
       <g:store_code>NETRUCK_RI</g:store_code>
       <g:vehicle_dealer_address>125 Industrial Drive, North Smithfield, RI 02896</g:vehicle_dealer_address>
       <g:image_link>https://cdn.cwsplatform.com/1305/images/6a5100620579a5061b445fec.jpg</g:image_link>
-      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63660e78747b064c4d4df2.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a63660e78747b064c4d4df2.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5100630579a5061b445fee.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5b7e87519d4459454565bc.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5100630579a5061b445ff0.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63660f78747b064c4d4df3.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5100630579a5061b445ff2.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57caea6c231e707e12f08a.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a63660f78747b064c4d4df4.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63660f78747b064c4d4df4.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5100630579a5061b445ff4.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5100630579a5061b445ff5.jpg</g:additional_image_link>
+    </item>
+    <item>
+      <g:id>5PVNJ7DV4T5T50871</g:id>
+      <title>New 2026 Hino L6 Moving Van</title>
+      <description>2026 HINO, L6, Medium Duty Trucks - Box Trucks - Dry Cargo-Delivery, CUMMINS B6.7, Automatic, MANAGER S SPECIAL REDUCED PRICING! Brand New 2026 Hino L6 26 Box Truck Take advantage of special manager pricing on this work-ready unit! 26 ITD Dry Freight Body Fully Galvanized Subframe for Superior Corrosion Protection Slat Line &amp; Full E-Track Cargo Securement Palfinger PTF 5,000 lb Tuck-Under Liftgate 62 x 84 Aluminum Platform Spring Ride Suspension Aluminum Wheels LED Headlights DOT Ready Financing Available Built for durability, reliability, and years of dependable service. Whether you re expanding your fleet or replacing an older truck, this Hino is ready to go to work. Truck Solutions 140 Industrial Drive North Smithfield, RI 02896 Ask for Brandon, 260 Horse Power, Spring Suspension, Aluminum Wheels, 271 Wheel Base, , Axle, Ratio, , VIN 5PVNJ7DV4T5T50871</description>
+      <link>https://netrucksolutions.com/inventory/moving+van/2026-hino-l6-north+smithfield-ri-6a65165e358d50a33004f382</link>
+      <g:link_template>https://netrucksolutions.com/inventory/moving+van/2026-hino-l6-north+smithfield-ri-6a65165e358d50a33004f382?store={store_code}</g:link_template>
+      <g:condition>new</g:condition>
+      <g:price>112150.00 USD</g:price>
+      <g:availability>in stock</g:availability>
+      <g:brand>Hino</g:brand>
+      <g:identifier_exists>no</g:identifier_exists>
+      <g:google_product_category>Vehicles &amp; Parts &gt; Vehicles &gt; Motor Vehicles &gt; Cars, Trucks &amp; Vans</g:google_product_category>
+      <g:color>Unspecified</g:color>
+      <g:product_type>Commercial Trucks &gt; Moving Van</g:product_type>
+      <g:vin>5PVNJ7DV4T5T50871</g:vin>
+      <g:year>2026</g:year>
+      <g:make>Hino</g:make>
+      <g:model>L6</g:model>
+      <g:mileage>150 miles</g:mileage>
+      <g:store_code>NETRUCK_RI</g:store_code>
+      <g:vehicle_dealer_address>125 Industrial Drive, North Smithfield, RI 02896</g:vehicle_dealer_address>
+      <g:image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a64b595321038e6c000ba92.jpg</g:image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a64b595e3f865968c04a844.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a64b5952b683c5bf10db772.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a64b59522321a139d094587.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a64b595d251d821f308f124.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a64b5956ef82ba9870596a8.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a64b595a7038557b7082526.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a64b595fec491c51b0ea4a6.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a64b59512b634479b04d4ac.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a64b59512632b2212035c68.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a64b595479d3199b2066d87.jpg</g:additional_image_link>
     </item>
     <item>
       <g:id>5PVNJ7DV6T5T50841</g:id>
@@ -125,7 +158,7 @@
       <g:mileage>250 miles</g:mileage>
       <g:store_code>NETRUCK_RI</g:store_code>
       <g:vehicle_dealer_address>125 Industrial Drive, North Smithfield, RI 02896</g:vehicle_dealer_address>
-      <g:image_link>https://cdn.cwsplatform.com/1305/images/6a6360dd0403fa06e673a250.jpg</g:image_link>
+      <g:image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a6360dd0403fa06e673a250.jpg</g:image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a56349e053a786be920eacd.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a56349f053a786be920eace.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5b772bfb0cf70f8a02c3d3.jpg</g:additional_image_link>
@@ -166,7 +199,7 @@
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cbeae6e1eb3e5e150fa5.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cbeae6e1eb3e5e150fa6.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cbebe6e1eb3e5e150fa7.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a6367583ef5104e685bbcc5.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6367583ef5104e685bbcc5.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cbebe6e1eb3e5e150fa9.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cbece6e1eb3e5e150faa.jpg</g:additional_image_link>
     </item>
@@ -390,7 +423,7 @@ Contact us today to learn more about the 2024 Hino S5 Standard Cab and explore y
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57c775b7ab7d23d651b3ae.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57c775b7ab7d23d651b3af.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6365c9b872d14bb66d449d.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a6365cab872d14bb66d449e.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6365cab872d14bb66d449e.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57c776b7ab7d23d651b3b2.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5b7d682618013144206133.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6365cab872d14bb66d449f.jpg</g:additional_image_link>
@@ -456,7 +489,7 @@ Contact us today to learn more about the 2024 Hino S5 Standard Cab and explore y
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57ca57d3cab96bd03f7934.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a51010e15785359381a2d57.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636619848a671fab659258.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a63661a848a671fab659259.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63661a848a671fab659259.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a51010e15785359381a2d58.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a63661a848a671fab65925a.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57ca59d3cab96bd03f7937.jpg</g:additional_image_link>
@@ -534,15 +567,15 @@ Reach out today for more details or to schedule a time to see it in person.</des
       <g:store_code>NETRUCK_RI</g:store_code>
       <g:vehicle_dealer_address>125 Industrial Drive, North Smithfield, RI 02896</g:vehicle_dealer_address>
       <g:image_link>https://cdn.cwsplatform.com/1305/images/6a57ba49a13b1c437b775844.jpg</g:image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a63619c38e4c61a2b09feec.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63619c38e4c61a2b09feec.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63619c38e4c61a2b09feed.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57ba4aa13b1c437b775847.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57ba4ba13b1c437b775848.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5b77ed8bd42f7032731d69.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a63619d38e4c61a2b09feee.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a63619d38e4c61a2b09feef.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63619d38e4c61a2b09feee.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63619d38e4c61a2b09feef.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5b77ee8bd42f7032731d6c.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a63619d38e4c61a2b09fef0.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63619d38e4c61a2b09fef0.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5b77ef8bd42f7032731d6e.jpg</g:additional_image_link>
     </item>
     <item>
@@ -572,7 +605,7 @@ Reach out today for more details or to schedule a time to see it in person.</des
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57bd4dcb59ac7f540f4411.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57bd4ecb59ac7f540f4412.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57bd4ecb59ac7f540f4413.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63619fb6e0c2219b111d52.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a63619fb6e0c2219b111d52.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57bd4fcb59ac7f540f4415.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63619fb6e0c2219b111d53.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6361a0b6e0c2219b111d54.jpg</g:additional_image_link>
@@ -600,16 +633,16 @@ Reach out today for more details or to schedule a time to see it in person.</des
       <g:store_code>NETRUCK_RI</g:store_code>
       <g:vehicle_dealer_address>125 Industrial Drive, North Smithfield, RI 02896</g:vehicle_dealer_address>
       <g:image_link>https://cdn.cwsplatform.com/1305/images/6a636a7cb8a976eed5078c36.jpg</g:image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a636a7cd5ee919335017a52.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a636a7c9e061729f0001711.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636a7cd5ee919335017a52.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636a7c9e061729f0001711.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636a7c2dfdc0c09b019772.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a636a7c4bd311fb190b5b64.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636a7c4bd311fb190b5b64.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636a7c55fea9b97f00c299.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a636a7ce3d4c8ca0a0c5fe3.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a636a7ca3f9d064a105de87.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a636a7c730fd33a4d0c8fc2.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636a7ce3d4c8ca0a0c5fe3.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636a7ca3f9d064a105de87.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636a7c730fd33a4d0c8fc2.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636a7c36662930af0dac03.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a636a7c17322a8abb00a843.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636a7c17322a8abb00a843.jpg</g:additional_image_link>
     </item>
     <item>
       <g:id>JHHGDM2H0LK001877</g:id>
@@ -639,10 +672,10 @@ Reach out today for more details or to schedule a time to see it in person.</des
       <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a636612903b252d435b6886.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a51010b4a41296a8d572321.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57ca8fd3cab96bd03f7943.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a636612903b252d435b6887.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636612903b252d435b6887.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57ca90d3cab96bd03f7944.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57ca90d3cab96bd03f7945.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a636612903b252d435b6888.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636612903b252d435b6888.jpg</g:additional_image_link>
     </item>
     <item>
       <g:id>JHHGDM2H9LK001876</g:id>
@@ -675,7 +708,7 @@ Reach out today for more details or to schedule a time to see it in person.</des
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57ce6e9049492f265e3870.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57ce6e9049492f265e3871.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57ce6f9049492f265e3872.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6368220ef68f7b193cf915.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a6368220ef68f7b193cf915.jpg</g:additional_image_link>
     </item>
     <item>
       <g:id>5PVNJ8AV3M5T51067</g:id>
@@ -698,17 +731,17 @@ Reach out today for more details or to schedule a time to see it in person.</des
       <g:mileage>231000 miles</g:mileage>
       <g:store_code>NETRUCK_RI</g:store_code>
       <g:vehicle_dealer_address>125 Industrial Drive, North Smithfield, RI 02896</g:vehicle_dealer_address>
-      <g:image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a63687e0e448c25da7f6eee.jpg</g:image_link>
+      <g:image_link>https://cdn.cwsplatform.com/1305/images/6a63687e0e448c25da7f6eee.jpg</g:image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63687e0e448c25da7f6eef.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63687f0e448c25da7f6ef0.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63687f0e448c25da7f6ef1.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a63687f0e448c25da7f6ef2.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63687f0e448c25da7f6ef2.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6368800e448c25da7f6ef3.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6368800e448c25da7f6ef4.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a6368800e448c25da7f6ef5.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a6368810e448c25da7f6ef6.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a6211a570080474ac536770.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a6368810e448c25da7f6ef7.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6368800e448c25da7f6ef5.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6368810e448c25da7f6ef6.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6211a570080474ac536770.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6368810e448c25da7f6ef7.jpg</g:additional_image_link>
     </item>
     <item>
       <g:id>1HTMMMML8KH626002</g:id>
@@ -732,14 +765,14 @@ Reach out today for more details or to schedule a time to see it in person.</des
       <g:store_code>NETRUCK_RI</g:store_code>
       <g:vehicle_dealer_address>125 Industrial Drive, North Smithfield, RI 02896</g:vehicle_dealer_address>
       <g:image_link>https://cdn.cwsplatform.com/1305/images/6a57cf3eb3283c317f4c8190.jpg</g:image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a636921df483803676d9758.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636921df483803676d9758.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cf3fb3283c317f4c8192.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cf3fb3283c317f4c8193.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cf40b3283c317f4c8194.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a636921df483803676d9759.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a636922df483803676d975a.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636921df483803676d9759.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636922df483803676d975a.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636922df483803676d975b.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a636922df483803676d975c.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636922df483803676d975c.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cf42b3283c317f4c8199.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cf42b3283c317f4c819a.jpg</g:additional_image_link>
     </item>
@@ -768,13 +801,13 @@ Reach out today for more details or to schedule a time to see it in person.</des
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6369966eb529a1ca0f2fc3.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6369969b9aa6fb400b1c02.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6369967f3c90c6830a492f.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a636996ae3e465c04064887.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a6369964e6d06199400b3b8.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a63699667f3acce93065ae6.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a6369961672bd42890ef055.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636996ae3e465c04064887.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6369964e6d06199400b3b8.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63699667f3acce93065ae6.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6369961672bd42890ef055.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636996993c51bbb6091de3.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a636996838e9b18d102a4aa.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a63699673b4ef1fcd0f94a8.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63699673b4ef1fcd0f94a8.jpg</g:additional_image_link>
     </item>
     <item>
       <g:id>5PVNJ8AV4M5T50283</g:id>
@@ -832,8 +865,8 @@ Reach out today for more details or to schedule a time to see it in person.</des
       <g:vehicle_dealer_address>125 Industrial Drive, North Smithfield, RI 02896</g:vehicle_dealer_address>
       <g:image_link>https://cdn.cwsplatform.com/1305/images/6a57cd2be1c47b03ee6e1adb.jpg</g:image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cd2be1c47b03ee6e1adc.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a6367c17eca39723d74fc1b.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a6367c17eca39723d74fc1c.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6367c17eca39723d74fc1b.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6367c17eca39723d74fc1c.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6367c27eca39723d74fc1d.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a6367c27eca39723d74fc1e.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cd2de1c47b03ee6e1ae0.jpg</g:additional_image_link>
@@ -904,9 +937,9 @@ Reach out today for more details or to schedule a time to see it in person.</des
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5b7d6f579d902dc24051bb.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5b7d6f579d902dc24051bc.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5b7d70579d902dc24051bd.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn1.commercialtrucktrader.com/v1/media/6a63654f18979a6f2a5ce4d4.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63654f18979a6f2a5ce4d4.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57c85e876c6d389279958f.jpg</g:additional_image_link>
-      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63654f18979a6f2a5ce4d5.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a63654f18979a6f2a5ce4d5.jpg</g:additional_image_link>
     </item>
     <item>
       <g:id>5PVNJ7AV3R5T56352</g:id>
@@ -930,7 +963,7 @@ Reach out today for more details or to schedule a time to see it in person.</des
       <g:store_code>NETRUCK_RI</g:store_code>
       <g:vehicle_dealer_address>125 Industrial Drive, North Smithfield, RI 02896</g:vehicle_dealer_address>
       <g:image_link>https://cdn.cwsplatform.com/1305/images/6a57cc7fbae795759d00143d.jpg</g:image_link>
-      <g:additional_image_link>https://cdn2.commercialtrucktrader.com/v1/media/6a63676ef915e56e5f0e9a67.jpg</g:additional_image_link>
+      <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63676ef915e56e5f0e9a67.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a5b7f812acdf56ce36a00c7.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a57cc80bae795759d00143f.jpg</g:additional_image_link>
       <g:additional_image_link>https://cdn.cwsplatform.com/1305/images/6a63676ef915e56e5f0e9a68.jpg</g:additional_image_link>
