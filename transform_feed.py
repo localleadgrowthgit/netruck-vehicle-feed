@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """
-CWS Platform -> Google Merchant Center Products feed.
+Auction123 CSV feed -> Google Merchant Center Products feed.
 
-Fetches the CWS XML inventory export, filters out items that are ineligible
-for Google ads, remaps each remaining vehicle into Google's product feed format
-(RSS 2.0 with the g: namespace). Vehicle-specific attributes are also included
-for forward-compatibility if the account is approved for Vehicle Ads.
+Fetches the Auction123 inventory export from the dealer website (CSV format),
+filters out items ineligible for Google ads, and remaps each vehicle into
+Google's product feed format (RSS 2.0 with the g: namespace). Vehicle-specific
+attributes are included for forward-compatibility with Vehicle Ads.
 
 Uses only the Python standard library. No pip installs needed.
 """
 
 from __future__ import annotations
 
+import csv
+import html
+import io
 import re
 import sys
 import urllib.request
@@ -22,22 +25,23 @@ from xml.etree import ElementTree as ET
 
 # ----------------------------- CONFIG --------------------------------------
 
-SOURCE_FEED_URL = "https://admin.cwsplatform.com/export/c71b77"
+SOURCE_FEED_URL = "https://www.netrucksolutions.com/feeds.asp?feed=Auction123Feedv2"
 
-# Set these to the store_code values from your Google Business Profile.
+# Google Business Profile store codes, keyed by the city in the feed's
+# "Location" column (lowercased). NOTE: the feed says "North Smithfield, MA"
+# even though the location is actually in RI, so we match on city name only.
 STORE_CODE_BY_CITY = {
     "north smithfield": "NETRUCK_RI",
     "avon": "NETRUCK_MA",
 }
 DEFAULT_STORE_CODE = "NETRUCK_RI"
 
+# Restrict the feed to a single location to avoid the Merchant Center
+# "multistate offers" policy violation. Set to None to include all locations.
+RESTRICT_TO_CITY = "north smithfield"
+
 CURRENCY = "USD"
 OUTPUT_PATH = Path("feed.xml")
-
-# Restrict the feed to a single location to avoid the multistate offers policy
-# in Merchant Center. Set to None to disable filtering and include all
-# locations. Set to a city name (lowercase) to include only that location.
-RESTRICT_TO_CITY = "north smithfield"
 
 CHANNEL_TITLE = "Truck Solutions Vehicle Inventory"
 CHANNEL_LINK = "https://netrucksolutions.com"
@@ -47,56 +51,39 @@ GOOGLE_PRODUCT_CATEGORY = "Vehicles & Parts > Vehicles > Motor Vehicles > Cars, 
 
 # ----------------------------- FILTERS -------------------------------------
 
-EXCLUDED_CATEGORIES = {
-    "dry van body only",
-    "reefer/refrigerated body",
-    "truck bodies only",
-}
+# Categories that aren't a complete vehicle. Matched as substrings against the
+# lowercased Category column.
+EXCLUDED_CATEGORY_SUBSTRINGS = (
+    "bodies only",
+    "body only",
+)
 
 VIN_RE = re.compile(r"^[A-HJ-NPR-Z0-9]{17}$")
 
-COLOR_PATTERNS = [
-    ("Off-White", r"\boff[\s-]?white\b"),
-    ("Pearl White", r"\bpearl\s+white\b"),
-    ("Snow White", r"\bsnow\s+white\b"),
-    ("White", r"\bwhite\b"),
-    ("Black", r"\bblack\b"),
-    ("Silver", r"\bsilver\b"),
-    ("Gray", r"\b(gr[ae]y)\b"),
-    ("Red", r"\bred\b"),
-    ("Blue", r"\bblue\b"),
-    ("Green", r"\bgreen\b"),
-    ("Yellow", r"\byellow\b"),
-    ("Orange", r"\borange\b"),
-    ("Brown", r"\bbrown\b"),
-    ("Tan", r"\btan\b"),
-    ("Beige", r"\bbeige\b"),
-    ("Gold", r"\bgold\b"),
-    ("Maroon", r"\bmaroon\b"),
-    ("Burgundy", r"\bburgundy\b"),
-]
-
-COLOR_NEGATIVE_CONTEXT = re.compile(
-    r"\b(interior|seat|seats|wheels?|aluminum|steel|trim|stripe|tape|liner|"
-    r"floor|tank|fuel|hose|cable|wire|label|tag|sticker)\s+\w*\s*$",
-    re.IGNORECASE,
-)
+TAG_RE = re.compile(r"<[^>]+>")
 
 
 # ----------------------------- HELPERS -------------------------------------
 
 
-def text(elem: Optional[ET.Element]) -> str:
-    if elem is None or elem.text is None:
+def clean_text(s: str) -> str:
+    """Unescape HTML entities and strip HTML tags from feed text."""
+    if not s:
         return ""
-    return elem.text.strip()
+    s = html.unescape(s)
+    s = TAG_RE.sub(" ", s)
+    s = re.sub(r"\s+", " ", s)
+    return s.strip()
 
 
 def first_int(s: str) -> Optional[int]:
+    """Pull the first integer out of strings like '221603 mi' or '122890'."""
     if not s:
         return None
-    digits = re.sub(r"[^\d]", "", s.split(".")[0])
-    return int(digits) if digits else None
+    m = re.search(r"\d[\d,]*", s)
+    if not m:
+        return None
+    return int(m.group(0).replace(",", ""))
 
 
 def first_float(s: str) -> Optional[float]:
@@ -112,147 +99,105 @@ def first_float(s: str) -> Optional[float]:
 
 
 def map_condition(raw: str) -> str:
-    r = raw.strip().lower()
-    if r == "new":
-        return "new"
-    if r == "used":
-        return "used"
-    return "used"
+    r = (raw or "").strip().lower()
+    return "new" if r == "new" else "used"
 
 
-def store_code_for(city: str) -> str:
-    return STORE_CODE_BY_CITY.get(city.strip().lower(), DEFAULT_STORE_CODE)
+def city_from_location(location: str) -> str:
+    """'North Smithfield, MA' -> 'north smithfield'. State is unreliable."""
+    if not location:
+        return ""
+    return location.split(",")[0].strip().lower()
+
+
+def store_code_for(location: str) -> str:
+    return STORE_CODE_BY_CITY.get(city_from_location(location), DEFAULT_STORE_CODE)
 
 
 def build_link_template(listing_url: str) -> str:
-    """
-    Build the link_template URL per Google's spec.
-
-    Google requires the {store_code} ValueTrack parameter. We use each
-    vehicle's specific listing URL as the base so deep-linking is preserved,
-    appending ?store={store_code} (or &store={store_code} if the URL already
-    has a query string).
-    """
+    """Listing URL + Google's required {store_code} ValueTrack parameter."""
     if not listing_url:
         return ""
     separator = "&" if "?" in listing_url else "?"
     return f"{listing_url}{separator}store={{store_code}}"
 
 
-def extract_color(description: str, short_desc: str = "") -> str:
-    text_to_search = f"{short_desc} {description}".lower()
-    if not text_to_search.strip():
+def normalize_color(raw: str) -> str:
+    """'WHITE' -> 'White'. Empty -> 'Unspecified'."""
+    c = (raw or "").strip()
+    if not c:
         return "Unspecified"
-
-    for color_label, pattern in COLOR_PATTERNS:
-        for match in re.finditer(pattern, text_to_search, re.IGNORECASE):
-            preceding = text_to_search[max(0, match.start() - 30):match.start()]
-            if COLOR_NEGATIVE_CONTEXT.search(preceding):
-                continue
-            return color_label
-    return "Unspecified"
+    return c.title()
 
 
-def build_rich_title(year: str, make: str, model: str, category: str,
-                     condition: str, listing: ET.Element) -> str:
-    parts = []
-    if condition.lower() == "new":
-        parts.append("New")
-    if year:
-        parts.append(year)
-    if make:
-        parts.append(make.title() if make.isupper() else make)
-    if model:
-        parts.append(model)
-
-    cat_clean = category.strip()
-    if cat_clean and cat_clean.lower() not in (" ".join(parts).lower()):
-        cat_clean = re.sub(r"\s*-\s*Straight Truck\s*$", "", cat_clean)
-        parts.append(cat_clean)
-
-    short_desc = text(listing.find("description-short"))
-    if short_desc and len(" ".join(parts)) < 100:
-        snippet = short_desc.split(".")[0].strip()
-        if snippet and snippet.lower() not in " ".join(parts).lower():
-            parts.append("-")
-            parts.append(snippet)
-
-    title = " ".join(parts)
-    title = re.sub(r"\s+", " ", title).strip()
-    return title[:150]
-
-
-def is_vehicle_listing(listing: ET.Element) -> tuple[bool, str]:
-    category = text(listing.find("category")).lower()
-    if any(ex in category for ex in EXCLUDED_CATEGORIES):
+def is_eligible(row: dict, seen_vins: set) -> tuple[bool, str]:
+    category = (row.get("Category") or "").lower()
+    if any(sub in category for sub in EXCLUDED_CATEGORY_SUBSTRINGS):
         return False, f"excluded category: {category}"
 
-    # Restrict to a single state/city to avoid the Merchant Center
-    # "multistate offers" policy violation.
     if RESTRICT_TO_CITY:
-        location = listing.find("location")
-        city = text(location.find("city")).lower() if location is not None else ""
+        city = city_from_location(row.get("Location") or "")
         if city != RESTRICT_TO_CITY.lower():
             return False, f"location filtered (not {RESTRICT_TO_CITY})"
 
-    vin = text(listing.find("identification-number")).upper()
+    vin = (row.get("VIN") or "").strip().upper()
     if not vin:
         return False, "missing VIN"
     if not VIN_RE.match(vin):
         return False, f"invalid VIN format: {vin!r}"
+    if vin in seen_vins:
+        return False, f"duplicate VIN: {vin}"
 
-    price_val = first_float(text(listing.find("price")))
-    if price_val is None or price_val <= 0:
-        return False, "no price (Request a Quote)"
+    price = first_float(row.get("SellingPrice") or "")
+    if price is None or price <= 0:
+        return False, "no price (Call for Price)"
 
-    odo_type = text(listing.find("odometer-type")).lower()
-    if odo_type and odo_type not in ("miles", "kilometers", "km"):
-        return False, f"odometer in {odo_type}, not miles"
-
-    year = first_int(text(listing.find("model-year")))
+    year = first_int(row.get("Year") or "")
     if not year or year < 1981 or year > datetime.now().year + 2:
         return False, f"invalid year: {year}"
+
+    if not (row.get("Detail-Page-URL") or "").strip():
+        return False, "missing detail page URL"
 
     return True, ""
 
 
-def build_item(listing: ET.Element) -> ET.Element:
+def build_item(row: dict) -> ET.Element:
     NS = "{http://base.google.com/ns/1.0}"
     item = ET.Element("item")
 
-    vin = text(listing.find("identification-number")).upper()
-    year = text(listing.find("model-year"))
-    make_raw = text(listing.find("manufacturer"))
+    vin = (row.get("VIN") or "").strip().upper()
+    year = (row.get("Year") or "").strip()
+    make_raw = (row.get("Make") or "").strip()
     make = make_raw.title() if make_raw.isupper() else make_raw
-    model = text(listing.find("model"))
-    condition = map_condition(text(listing.find("condition")))
-    price = first_float(text(listing.find("price")))
-    odometer = first_int(text(listing.find("odometer"))) or 0
-    odo_type = text(listing.find("odometer-type")).lower() or "miles"
-    category = text(listing.find("category"))
-    cat_type = text(listing.find("cat-type"))
+    model = (row.get("Model") or "").strip()
+    condition = map_condition(row.get("Type") or "")
+    price = first_float(row.get("SellingPrice") or "")
+    miles = first_int(row.get("Miles") or "") or 0
+    category = (row.get("Category") or "").strip()
+    location = (row.get("Location") or "").strip()
+    listing_url = (row.get("Detail-Page-URL") or "").strip()
+    color = normalize_color(row.get("ExteriorColor") or "")
 
-    description_long = text(listing.find("description-long"))
-    description_short = text(listing.find("description-short"))
-    description = description_long or description_short or f"{year} {make} {model}"
-    listing_url = text(listing.find("listing-url"))
+    description = clean_text(row.get("Description") or "")
+    if not description:
+        description = f"{year} {make} {model}"
 
-    location = listing.find("location")
-    city = text(location.find("city")) if location is not None else ""
-    state = text(location.find("state")) if location is not None else ""
-    postal = text(location.find("postal-code")) if location is not None else ""
-
-    title = build_rich_title(year, make, model, category, condition, listing)
-    color = extract_color(description_long, description_short)
-    link_template = build_link_template(listing_url)
+    # Title: "New 2026 Hino L6 Box Trucks - Cargo / Straight" style, trimmed
+    parts = []
+    if condition == "new":
+        parts.append("New")
+    parts.extend(p for p in (year, make, model) if p)
+    if category and category.lower() not in " ".join(parts).lower():
+        parts.append(category)
+    title = re.sub(r"\s+", " ", " ".join(parts)).strip()[:150]
 
     # ----- CORE PRODUCT FIELDS -----
     ET.SubElement(item, f"{NS}id").text = vin
     ET.SubElement(item, "title").text = title
     ET.SubElement(item, "description").text = description[:5000]
     ET.SubElement(item, "link").text = listing_url
-    if link_template:
-        ET.SubElement(item, f"{NS}link_template").text = link_template
+    ET.SubElement(item, f"{NS}link_template").text = build_link_template(listing_url)
     ET.SubElement(item, f"{NS}condition").text = condition
     ET.SubElement(item, f"{NS}price").text = f"{price:.2f} {CURRENCY}"
     ET.SubElement(item, f"{NS}availability").text = "in stock"
@@ -264,62 +209,52 @@ def build_item(listing: ET.Element) -> ET.Element:
     ET.SubElement(item, f"{NS}google_product_category").text = GOOGLE_PRODUCT_CATEGORY
     ET.SubElement(item, f"{NS}color").text = color
 
-    product_type = cat_type.split("|")[0] if "|" in cat_type else (cat_type or category)
-    if product_type:
-        product_type_clean = product_type.replace(" - ", " > ").replace("|", " > ")
-        ET.SubElement(item, f"{NS}product_type").text = f"Commercial Trucks > {product_type_clean}"
+    if category:
+        ET.SubElement(item, f"{NS}product_type").text = (
+            f"Commercial Trucks > {category.replace(' - ', ' > ')}"
+        )
 
     # ----- VEHICLE-SPECIFIC ATTRIBUTES (future-proofed for Vehicle Ads) -----
-    # Note: g:vehicle_fulfillment intentionally omitted. It's a structured
-    # sub-attribute (colon-delimited) per Google's spec, only meaningful when
-    # the account is enrolled in Vehicle Ads. As a plain string in a products
-    # feed it triggers an "invalid format for sub-attributes" error and
-    # limits visibility, so we drop it. If/when Vehicle Ads is enabled, we'd
-    # add it back with the correct structured value per the current spec.
     ET.SubElement(item, f"{NS}vin").text = vin
     ET.SubElement(item, f"{NS}year").text = year
     ET.SubElement(item, f"{NS}make").text = make
     ET.SubElement(item, f"{NS}model").text = model
-    ET.SubElement(item, f"{NS}mileage").text = f"{odometer} {'miles' if 'mile' in odo_type else 'km'}"
-    ET.SubElement(item, f"{NS}store_code").text = store_code_for(city)
+    ET.SubElement(item, f"{NS}mileage").text = f"{miles} miles"
+    ET.SubElement(item, f"{NS}store_code").text = store_code_for(location)
 
-    # MSRP — only emit when the CWS retail-price field actually has a value.
-    # The dealership leaves this blank on most listings today; the attribute
-    # will appear automatically once retail prices are filled in upstream.
-    retail_price = first_float(text(listing.find("retail-price")))
-    if retail_price is not None and retail_price > 0:
-        ET.SubElement(item, f"{NS}vehicle_msrp").text = f"{retail_price:.2f} {CURRENCY}"
+    # MSRP — only when the feed's MSRP column has a real value
+    msrp = first_float(row.get("MSRP") or "")
+    if msrp is not None and msrp > 0:
+        ET.SubElement(item, f"{NS}vehicle_msrp").text = f"{msrp:.2f} {CURRENCY}"
 
-    if state and postal and location is not None:
-        addr = location.find("address-1")
-        addr1 = text(addr) if addr is not None else ""
-        full_addr = f"{addr1}, {city}, {state} {postal}".strip(", ")
-        ET.SubElement(item, f"{NS}vehicle_dealer_address").text = full_addr
-
-    # ----- IMAGES -----
-    photos = listing.findall("listing-photos/photo/url")
-    if photos:
-        ET.SubElement(item, f"{NS}image_link").text = text(photos[0])
-        for extra in photos[1:11]:
-            url = text(extra)
-            if url:
-                ET.SubElement(item, f"{NS}additional_image_link").text = url
+    # ----- IMAGES (PhotoURLs is a single comma-separated field) -----
+    photo_urls = [u.strip() for u in (row.get("PhotoURLs") or "").split(",") if u.strip()]
+    if photo_urls:
+        ET.SubElement(item, f"{NS}image_link").text = photo_urls[0]
+        for extra in photo_urls[1:11]:
+            ET.SubElement(item, f"{NS}additional_image_link").text = extra
 
     return item
 
 
-def fetch_source(url: str) -> bytes:
+def fetch_source(url: str) -> str:
     req = urllib.request.Request(
         url,
-        headers={"User-Agent": "feed-transformer/1.0 (+netrucksolutions.com)"},
+        headers={"User-Agent": "Mozilla/5.0 (compatible; feed-transformer/2.0)"},
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        return resp.read()
+    with urllib.request.urlopen(req, timeout=90) as resp:
+        raw = resp.read()
+    # Auction123 feeds are typically UTF-8 or Windows-1252
+    for enc in ("utf-8-sig", "utf-8", "cp1252"):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", errors="replace")
 
 
-def build_feed(source_xml: bytes) -> tuple[ET.ElementTree, dict]:
-    root = ET.fromstring(source_xml)
-    listings = root.findall(".//listing")
+def build_feed(source_csv: str) -> tuple[ET.ElementTree, dict]:
+    reader = csv.DictReader(io.StringIO(source_csv))
 
     ET.register_namespace("g", "http://base.google.com/ns/1.0")
     rss = ET.Element("rss", {"version": "2.0"})
@@ -331,22 +266,31 @@ def build_feed(source_xml: bytes) -> tuple[ET.ElementTree, dict]:
         "%a, %d %b %Y %H:%M:%S +0000"
     )
 
-    stats = {"total": len(listings), "included": 0, "excluded": 0,
-             "reasons": {}, "colors": {}}
+    stats = {"total": 0, "included": 0, "excluded": 0, "reasons": {}, "colors": {}}
+    seen_vins: set = set()
 
-    for listing in listings:
-        ok, reason = is_vehicle_listing(listing)
+    for row in reader:
+        # Skip blank rows (some exports have empty lines between records)
+        if not any((v or "").strip() for v in row.values()):
+            continue
+        stats["total"] += 1
+
+        ok, reason = is_eligible(row, seen_vins)
         if not ok:
             stats["excluded"] += 1
             stats["reasons"][reason] = stats["reasons"].get(reason, 0) + 1
             continue
-        item = build_item(listing)
+
+        vin = (row.get("VIN") or "").strip().upper()
+        seen_vins.add(vin)
+
+        item = build_item(row)
         channel.append(item)
         stats["included"] += 1
+
         color_el = item.find("{http://base.google.com/ns/1.0}color")
         if color_el is not None:
-            c = color_el.text
-            stats["colors"][c] = stats["colors"].get(c, 0) + 1
+            stats["colors"][color_el.text] = stats["colors"].get(color_el.text, 0) + 1
 
     return ET.ElementTree(rss), stats
 
@@ -359,7 +303,7 @@ def main() -> int:
         print(f"ERROR: could not fetch source feed: {e}", file=sys.stderr)
         return 1
 
-    print(f"Fetched {len(source):,} bytes. Transforming ...")
+    print(f"Fetched {len(source):,} characters. Transforming ...")
     tree, stats = build_feed(source)
 
     ET.indent(tree, space="  ")
@@ -374,7 +318,7 @@ def main() -> int:
         for reason, n in sorted(stats["reasons"].items(), key=lambda x: -x[1]):
             print(f"    {n:>4}  {reason}")
     if stats["colors"]:
-        print("  Color extraction:")
+        print("  Colors:")
         for color, n in sorted(stats["colors"].items(), key=lambda x: -x[1]):
             print(f"    {n:>4}  {color}")
     return 0
